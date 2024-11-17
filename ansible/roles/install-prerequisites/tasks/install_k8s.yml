@@ -1,6 +1,6 @@
-- name: Install prerequisites for containerd
+- name: Install required packages
   apt:
-    name: 
+    name:
       - curl
       - gnupg2
       - software-properties-common
@@ -8,65 +8,50 @@
       - ca-certificates
     state: present
     update_cache: yes
-  vars:
-    ansible_apt_force_apt_get: yes
-
-- name: Add Docker GPG key
-  ansible.builtin.shell: |
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
-  args:
-    warn: false
-
-- name: Add Docker repository
-  apt_repository:
-    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-    state: present
 
 - name: Install containerd
   apt:
     name: containerd.io
     state: present
-  vars:
-    ansible_apt_force_apt_get: yes
 
-- name: Generate default containerd configuration
+- name: Generate containerd configuration
   command: containerd config default
   register: containerd_config
   changed_when: false
 
-- name: Write containerd configuration
+- name: Save containerd configuration
   copy:
-    dest: /etc/containerd/config.toml
     content: "{{ containerd_config.stdout }}"
+    dest: /etc/containerd/config.toml
 
-- name: Update containerd config to use SystemdCgroup
+- name: Update containerd to use SystemdCgroup
   lineinfile:
     path: /etc/containerd/config.toml
     regexp: '^SystemdCgroup = false'
     line: 'SystemdCgroup = true'
 
-- name: Restart and enable containerd
+- name: Restart and enable containerd service
   systemd:
     name: containerd
     state: restarted
     enabled: yes
 
-- name: Add Kubernetes GPG key
-  ansible.builtin.shell: |
-    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-  args:
-    warn: false
-
 - name: Add Kubernetes repository
-  apt_repository:
-    repo: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-    state: present
+  copy:
+    content: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /"
+    dest: /etc/apt/sources.list.d/kubernetes.list
 
-- name: Update apt cache
+- name: Download Kubernetes GPG key
+  get_url:
+    url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
+    dest: /tmp/kubernetes-release.key
+
+- name: Add Kubernetes GPG key to trusted location
+  command: gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg /tmp/kubernetes-release.key
+
+- name: Update apt cache after adding Kubernetes repository
   apt:
     update_cache: yes
-  vars:
-    ansible_apt_force_apt_get: yes
 
 - name: Install Kubernetes packages
   apt:
@@ -75,14 +60,6 @@
       - kubeadm
       - kubectl
     state: present
-  vars:
-    ansible_apt_force_apt_get: yes
 
-- name: Hold Kubernetes packages
-  apt:
-    name:
-      - kubelet
-      - kubeadm
-      - kubectl
-    state: present
-    mark_hold: yes
+- name: Mark Kubernetes packages to hold
+  shell: apt-mark hold kubelet kubeadm kubectl
