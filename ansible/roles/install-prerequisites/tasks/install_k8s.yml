@@ -1,0 +1,78 @@
+
+- name: Install prerequisite packages
+  apt:
+    name:
+      - curl
+      - gnupg2
+      - software-properties-common
+      - apt-transport-https
+      - ca-certificates
+    state: present
+    update_cache: yes
+
+- name: Add Docker GPG key
+  command: >
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg |
+    gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
+  args:
+    creates: /etc/apt/trusted.gpg.d/docker.gpg
+
+- name: Add Docker repository
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install containerd.io
+  apt:
+    name: containerd.io
+    state: present
+
+- name: Configure containerd
+  shell: |
+    containerd config default | tee /etc/containerd/config.toml >/dev/null 2>&1
+    sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml
+
+- name: Restart and enable containerd
+  systemd:
+    name: containerd
+    state: restarted
+    enabled: yes
+
+- name: Add Kubernetes GPG key
+  command: >
+    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+  args:
+    creates: /etc/apt/trusted.gpg.d/kubernetes-apt-key.gpg
+
+- name: Add Kubernetes repository
+  apt_repository:
+    repo: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+    state: present
+
+- name: Update apt cache for Kubernetes
+  apt:
+    update_cache: yes
+
+- name: Install Kubernetes components
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+
+- name: Mark Kubernetes components to hold
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    lock: yes
+  when: ansible_os_family == "Debian"

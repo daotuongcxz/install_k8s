@@ -1,0 +1,58 @@
+- name: Set hostname
+  hostname:
+    name: "{{ inventory_hostname }}"
+  ignore_errors: true
+
+- name: Update /etc/hosts file
+  blockinfile:
+    path: /etc/hosts
+    block: |
+      10.10.1.252   k8s-master
+      10.10.1.115   k8s-worker1
+      10.10.1.213   k8s-worker2
+  become: true
+  ignore_errors: true
+
+- name: Disable swap
+  shell: |
+    swapoff -a
+    sed -i '/swap.img/s/^/#/' /etc/fstab
+  become: true
+  ignore_errors: true
+
+- name: Verify swap is disabled
+  command: free -h
+  register: swap_status
+  changed_when: false
+  ignore_errors: true
+
+- name: Load kernel modules
+  copy:
+    dest: /etc/modules-load.d/containerd.conf
+    content: |
+      overlay
+      br_netfilter
+  become: true
+  ignore_errors: true
+
+- name: Load kernel modules now
+  shell: |
+    modprobe overlay
+    modprobe br_netfilter
+  become: true
+  ignore_errors: true
+
+- name: Set Kubernetes kernel parameters
+  copy:
+    dest: /etc/sysctl.d/kubernetes.conf
+    content: |
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.bridge.bridge-nf-call-iptables = 1
+      net.ipv4.ip_forward = 1
+  become: true
+  ignore_errors: true
+
+- name: Apply sysctl parameters
+  command: sysctl --system
+  become: true
+  ignore_errors: true
