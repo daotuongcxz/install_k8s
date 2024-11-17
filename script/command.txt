@@ -1,1 +1,47 @@
-ansible-playbook playbooks/install-prerequisites.yml
+#install require
+ansible-playbook -i inventory/hosts.yml playbooks/install-prerequisites.yml
+
+
+#install k8s cluster
+cd kubespray
+Change ip cluster by edit: nano inventory/mycluster/hosts.yml
+[all]
+k8s-master  ansible_host=192.168.145.50     ip=192.168.145.50
+k8s-worker1  ansible_host=192.168.145.51      ip=192.168.145.51
+k8s-worker2  ansible_host=192.168.145.52     ip=192.168.145.52
+
+[kube-master]
+k8s-master
+
+[kube-node]
+k8s-worker1
+k8s-worker2
+
+[etcd]
+k8s-master
+
+[k8s-cluster:children]
+kube-node
+kube-master
+
+[calico-rr]
+
+[vault]
+k8s-master
+k8s-worker1
+k8s-worker2
+
+=> run install
+ansible-playbook -i inventory/mycluster/hosts.yaml  --become --become-user=root cluster.yml
+
+
+=> change config coredns after install k8s cluster
+kubectl edit configmap coredns -n kube-system
+    forward . 8.8.8.8 8.8.4.4  {
+            prefer_udp
+            max_concurrent 1000
+            }
+
+
+kubectl rollout restart deployment coredns -n kube-system
+
