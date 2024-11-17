@@ -6,9 +6,9 @@
   blockinfile:
     path: /etc/hosts
     block: |
-      10.10.1.252   k8s-master
-      10.10.1.115   k8s-worker1
-      10.10.1.213   k8s-worker2
+      192.168.145.50   k8s-master
+      192.168.145.51   k8s-worker1
+      192.168.145.52   k8s-worker2
   become: true
 
 
@@ -57,5 +57,7 @@
 
 
 - name: Update and upgrade packages
-  command: apt-get update -y && apt-get upgrade -y
+  apt:
+    update_cache: yes
+    upgrade: dist
   become: true
