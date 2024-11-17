@@ -9,6 +9,20 @@
     state: present
     update_cache: yes
 
+- name: Download Docker GPG key
+  get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /tmp/docker.gpg
+
+- name: Add Docker GPG key to trusted location
+  shell: gpg --batch --yes --dearmor -o /etc/apt/trusted.gpg.d/docker.gpg /tmp/docker.gpg
+  become: true
+
+- name: Add Docker repository
+  shell: |
+    add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  become: true
+
 - name: Install containerd
   apt:
     name: containerd.io

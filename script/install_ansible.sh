@@ -21,15 +21,15 @@ node_03_user="ubuntu"
 # Install necessary packages
 install_packages() {
     print_info "Installing required packages: tree, zip, ansible, sshpass, docker, docker-compose, helm..."
-    apt update -q
+    apt update -y && apt upgrade -y
     apt install -yq tree zip ansible sshpass curl apt-transport-https gnupg lsb-release
 
     # Install Docker
-    if ! command -v docker &>/dev/null; then
-        curl -fsSL -o install_docker.sh https://raw.githubusercontent.com/docker/docker-install/master/install.sh
-        chmod +x install_docker.sh
-        sh ./install_docker.sh --version "$DOCKER_VERSION" || print_error "Failed to install Docker"
-    fi
+    # if ! command -v docker &>/dev/null; then
+    #     curl -fsSL -o install_docker.sh https://raw.githubusercontent.com/docker/docker-install/master/install.sh
+    #     chmod +x install_docker.sh
+    #     sh ./install_docker.sh --version "$DOCKER_VERSION" || print_error "Failed to install Docker"
+    # fi
 
     # Install Helm
     if ! command -v helm &>/dev/null; then
