@@ -4,10 +4,11 @@
   become: true
 
   tasks:
+    - name: Update server
+      import_tasks: ../roles/install-prerequisites/tasks/update_server.yml
+      
     - name: Install Kubernetes dependencies
       import_tasks: ../roles/install-prerequisites/tasks/install_k8s.yml
 
-    - name: Update server
-      import_tasks: ../roles/install-prerequisites/tasks/update_server.yml
 
-      
+
